@@ -59,13 +59,12 @@ const login = async () => {
   loading.value = true
 
   try {
-    const res = await api.post('/login', {
+    const res = await api.login({
       email: email.value,
       password: password.value
     })
-
-    session.save(res.data.user)
-    router.push('/trips')
+    session.set(res.data.user)
+    router.push('/home')
   } catch (e) {
     error.value = 'Email o contraseña incorrectos'
   } finally {

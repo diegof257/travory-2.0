@@ -1,18 +1,20 @@
+const KEY = 'travory-user'
+
 export const session = {
-  save(user) {
-    localStorage.setItem('user', JSON.stringify(user))
+  set(user) {
+    localStorage.setItem(KEY, JSON.stringify(user))
   },
 
   get() {
-    const u = localStorage.getItem('user')
-    return u ? JSON.parse(u) : null
+    const data = localStorage.getItem(KEY)
+    return data ? JSON.parse(data) : null
+  },
+
+  isLogged() {
+    return !!this.get()
   },
 
   clear() {
-    localStorage.removeItem('user')
-  },
-
-  isAuthenticated() {
-    return !!this.get()
+    localStorage.removeItem(KEY)
   }
 }

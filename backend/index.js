@@ -37,7 +37,7 @@ app.get('/health', (req, res) => {
 // =====================================
 app.post('/login', (req, res) => {
   const { email, password } = req.body;
-
+  console.log('Hola'+res);
   const sql = `
     SELECT id, name, email
     FROM users
@@ -171,6 +171,57 @@ app.post('/pois', (req, res) => {
         message: 'POI creado',
         poiId: result.insertId
       });
+    }
+  );
+});
+
+// =====================================
+// 🏠 HOME
+// =====================================
+app.get('/home/:userId', (req, res) => {
+  const { userId } = req.params;
+
+  const statsQuery = `
+    SELECT
+      COUNT(*) AS total,
+      SUM(end_date >= CURDATE()) AS upcoming
+    FROM trips
+    WHERE user_id = ?
+  `;
+
+  const nextTripQuery = `
+    SELECT id, destination, start_date, end_date
+    FROM trips
+    WHERE user_id = ?
+      AND start_date >= CURDATE()
+    ORDER BY start_date ASC
+    LIMIT 1
+  `;
+
+  db.query(statsQuery, [userId], (err, statsResult) => {
+    if (err) return res.status(500).json(err);
+
+    db.query(nextTripQuery, [userId], (err, tripResult) => {
+      if (err) return res.status(500).json(err);
+
+      res.json({
+        stats: statsResult[0],
+        nextTrip: tripResult[0] || null
+      });
+    });
+  });
+});
+
+// GET viajes por usuario
+app.get('/users/:userId/trips', (req, res) => {
+  const { userId } = req.params;
+
+  db.query(
+    'SELECT * FROM trips WHERE user_id = ? ORDER BY start_date DESC',
+    [userId],
+    (err, results) => {
+      if (err) return res.status(500).json(err);
+      res.json(results);
     }
   );
 });

@@ -4,30 +4,23 @@
 
     <div class="grid">
       <ActionCard
-        primary
-        icon="+"
-        title="Nuevo viaje"
-        subtitle="Planifica tu próxima aventura"
-        @click="onNewTrip"
-      />
+  primary
+  icon="+"
+  title="Nuevo viaje"
+  subtitle="Planifica tu próxima aventura"
+/>
 
-      <ActionCard
-        icon="✨"
-        title="IA Itinerario"
-        subtitle="Generado automáticamente"
-      />
+<ActionCard
+  icon="✈️"
+  title="Mis viajes"
+  subtitle="Ver todos"
+/>
 
-      <ActionCard
-        icon="🧭"
-        title="Explorar"
-        subtitle="Descubre destinos"
-      />
-
-      <ActionCard
-        icon="📈"
-        title="Estadísticas"
-        subtitle="Tu historial"
-      />
+<ActionCard
+  icon="⚙️"
+  title="Preferencias"
+  subtitle="Personaliza la app"
+/>
     </div>
   </section>
 </template>
@@ -38,6 +31,13 @@ import ActionCard from '@/components/ActionCard.vue'
 function onNewTrip() {
   console.log('Abrir modal crear viaje')
 }
+const emit = defineEmits([
+  'new-trip',
+  'go-trips',
+  'go-preferences',
+  'go-profile'
+])
+
 </script>
 
 <style scoped>

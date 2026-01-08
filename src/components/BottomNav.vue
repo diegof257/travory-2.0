@@ -1,31 +1,29 @@
 <template>
   <nav class="bottom-nav">
-    <RouterLink to="/trips" class="item">
-      🏠
-      <span>Inicio</span>
+    <RouterLink to="/home" class="item">
+      <HomeIcon />
     </RouterLink>
 
     <RouterLink to="/trips" class="item">
-      ✈️
-      <span>Viajes</span>
+      <PlaneIcon />
     </RouterLink>
 
     <RouterLink to="/preferences" class="item">
-      ❤️
-      <span>Preferencias</span>
-    </RouterLink>
-
-    <RouterLink to="/chat" class="item">
-      💬
-      <span>Chat</span>
+      <HeartIcon />
     </RouterLink>
 
     <RouterLink to="/profile" class="item">
-      👤
-      <span>Perfil</span>
+      <UserIcon />
     </RouterLink>
   </nav>
 </template>
+
+<script setup>
+import HomeIcon from '@/components/icons/HomeIcon.vue'
+import PlaneIcon from '@/components/icons/PlaneIcon.vue'
+import HeartIcon from '@/components/icons/HeartIcon.vue'
+import UserIcon from '@/components/icons/UserIcon.vue'
+</script>
 
 <style scoped>
 .bottom-nav {
@@ -42,16 +40,10 @@
 }
 
 .item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 11px;
   color: #9ca3af;
-  text-decoration: none;
 }
 
 .router-link-active {
   color: #111827;
-  font-weight: 600;
 }
 </style>
