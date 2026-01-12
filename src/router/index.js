@@ -7,6 +7,8 @@ import TripsView from '@/views/TripsView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PreferencesView from '@/views/PreferencesView.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
+import ChatView from '@/views/ChatView.vue'
+import TripDetail from '@/components/TripDetail.vue'
 
 // 1️⃣ PRIMERO crear el router
 const router = createRouter({
@@ -26,7 +28,9 @@ const router = createRouter({
         { path: 'home', component: HomeView },
         { path: 'trips', component: TripsView },
         { path: 'profile', component: ProfileView },
-        { path: 'preferences', component: PreferencesView }
+        { path: 'chat', component: ChatView },
+        { path: 'preferences', component: PreferencesView },
+        {path: '/trips/:id',name: 'trip-detail',component: TripDetail,props: true}
       ]
     }
   ]

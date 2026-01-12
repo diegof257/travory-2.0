@@ -59,7 +59,7 @@ async function create() {
   loading.value = true
 
   try {
-    await api.createTrip({
+    const createdTrip = await api.createTrip({
       user_id: session.get().id,
       name: form.value.name,
       destination: form.value.destination,
@@ -68,7 +68,7 @@ async function create() {
       status: 'UPCOMING'
     })
 
-    emit('created')
+    emit('created',createdTrip)
   } catch (err) {
     console.error('Error creando viaje', err)
   } finally {
