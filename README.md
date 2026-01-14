@@ -3,20 +3,10 @@ Proyecto realizado como proyecto universitario con la intención de aprender com
 
 Los formularios no cuentan con validaciones de ningun tipo.
 
-This template should help get you started developing with Vue 3 in Vite.
+Los archivos ChatIa.json e ItineraryIA.json contienen el diseño del agente IA. se debe inportan en n8n para su utilización
 
-## Recommended IDE Setup
+El archivo travory-bd.sql contiene la base de datos utilizada en el proyecto, ésta es una base de datos básica diseñada únicamente con el fin, de cumplir los requisitos minimos requeridos por el proyecto.
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
 
 ## Customize configuration
 
