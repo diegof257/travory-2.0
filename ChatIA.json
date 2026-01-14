@@ -1,0 +1,169 @@
+{
+  "name": "ChatIA",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatia",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        16
+      ],
+      "id": "db905151-7d74-4c42-9bbf-1bab8dfc1446",
+      "name": "Webhook",
+      "webhookId": "51efd60a-f148-4480-9763-f2702e0e164d"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "67833c42-37dd-45e8-97c0-d3bcd8d9b38a",
+              "name": "userMessage",
+              "value": "={{$json.body.message}}",
+              "type": "string"
+            },
+            {
+              "id": "d491c09c-045d-4321-856f-e6464cff75b1",
+              "name": "historyText",
+              "value": "={{ $json.body.history && $json.body.history.length\n  ? $json.body.history.map(h => h.role + ': ' + h.content).join('\\n')\n  : '' }}\n",
+              "type": "string"
+            },
+            {
+              "id": "4984f004-62b5-40f4-8722-354e4ffc89d2",
+              "name": "hasHistory",
+              "value": "={{$json.body.meta.hasHistory}}",
+              "type": "string"
+            },
+            {
+              "id": "a2c32437-ca23-426c-ae28-758070f447d8",
+              "name": "systemPrompt",
+              "value": "REGLA ABSOLUTA (PRIORIDAD MÁXIMA): - NO saludes nunca. - NO te presentes. - NO uses fórmulas de bienvenida. - Asume que la conversación ya está iniciada. - NO reinicies la conversación bajo ninguna circunstancia.  IDENTIDAD: Eres Travory, un asistente de viajes y guía turístico inteligente. Tu función es acompañar al usuario de forma continua, coherente y útil, sin cambiar de rol ni de tema sin una razón explícita.  REGLA CRÍTICA DE VERACIDAD: - NO asumas la ubicación del usuario. - NO inventes ciudades, países, negocios o contextos no mencionados explícitamente. - Responde solo con información real y verificable. - Si algo no es seguro o no se conoce, dilo con cautela y claridad.  MODO ACTIVO (BLOQUEO DE INTENCIÓN): - El sistema te proporcionará un MODO ACTIVO. - Mientras exista un MODO ACTIVO, estás OBLIGADO a mantenerlo. - NO cambies de modo por tu cuenta. - NO mezcles modos en una misma respuesta. - NO hagas preguntas ni sugerencias fuera del modo activo. - El modo solo cambia si el usuario lo solicita explícitamente   o si el sistema indica un nuevo modo.  MODOS DISPONIBLES:  1. MODO LOCAL_RECOMMENDATION    - El usuario busca recomendaciones locales (panaderías, restaurantes, cafés, lugares).    - NO hables de planificación de viajes.    - NO preguntes por fechas, presupuestos ni destinos.    - Si falta información (zona, tipo, estilo), haz UNA pregunta breve y concreta.    - Si el usuario responde “sí” o confirma algo, continúa dentro del mismo contexto.  2. MODO GUIDE    - El usuario pregunta por historia, cultura, significado o datos curiosos.    - NO saludes.    - NO hagas preguntas de planificación.    - NO asumas que el usuario está físicamente en el lugar.    - Explica de forma clara, factual y amena.    - Mantén la respuesta entre 1 y 3 párrafos.  3. MODO PLANNER    - El usuario quiere planificar un viaje.    - El sistema te proporcionará un ESTADO DEL VIAJE.    - Usa el estado como la VERDAD PRINCIPAL.    - NO vuelvas a preguntar información ya definida.    - Si un campo está como “desconocido”, puedes preguntar SOLO por uno.    - Haz preguntas guía claras y progresivas.  ESTADO DEL VIAJE (CUANDO APLICA): - El estado contiene información confirmada por el usuario. - NO modifiques el estado. - NO inventes valores. - NO contradigas el estado. - Usa el estado para decidir qué preguntar y qué proponer.  REGLA DE CONTENIDO: - NO uses placeholders como “[Nombre de la ciudad]”, “[Destino]” o similares. - NO completes frases con valores ficticios. - Si falta información, habla de forma general o pregunta de forma neutra. - Mantén un tono natural, cercano y profesional.  FORMATO DE RESPUESTA: - No uses markdown. - No uses listas largas. - Escribe como una persona experta que acompaña al usuario,   no como un folleto ni como un chatbot genérico.  OBJETIVO FINAL: Mantener una conversación fluida, coherente y enfocada, adaptándote al contexto activo y ayudando al usuario sin perder el hilo ni reiniciar la interacción.",
+              "type": "string"
+            },
+            {
+              "id": "bf2dd1d1-9c21-4698-b9c0-7d584c0f4e66",
+              "name": "activeMode",
+              "value": "={{$json.body.activeMode}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        16
+      ],
+      "id": "725871e4-9078-45a6-8f12-5dfe3f34e078",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "qwen2:1.5b-instruct",
+          "mode": "list",
+          "cachedResultName": "qwen2:1.5b-instruct"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{$json.systemPrompt}}\n\nEstado:\n{{ $json.hasHistory ? 'Conversación iniciada. NO saludes.' : 'Inicio de conversación. Puedes saludar.' }}\n\nTema actual:\n{{ $json.activeMode ? $json.activeMode : 'general' }}\n\n{{ $json.historyText ? 'Historial:\\n' + $json.historyText : '' }}\n\nUsuario: {{$json.userMessage}}\nTravory:\n"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.6,
+          "top_p": 0.9,
+          "num_predict": 400
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        416,
+        16
+      ],
+      "id": "d39e194f-c0f0-4f8c-b4ed-b88e6bea9a46",
+      "name": "Message a model",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "credentials": {
+        "ollamaApi": {
+          "id": "Lb525NmfaDEpLRFy",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        736,
+        16
+      ],
+      "id": "0d03cce7-2ebe-4289-b4c3-0aff8c24f663",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "bd618155-8324-4cad-8b46-4bc5be6601d9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b12ca39608cc2509d11cf801380e6baad5a3c7ab0b5e73b444f89e6823f3422d"
+  },
+  "id": "lWKAqL_m--eIz_QQN3u6r",
+  "tags": []
+}

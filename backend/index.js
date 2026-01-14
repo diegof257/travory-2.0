@@ -220,7 +220,7 @@ app.post('/pois', (req, res) => {
 // =====================================
 app.get('/home/:userId', (req, res) => {
   const { userId } = req.params;
-
+console.log('Fetching home data for user:', userId);
   const statsQuery = `
     SELECT
       COUNT(*) AS total,
@@ -393,16 +393,17 @@ function mapTripWithItinerary(rows) {
 // =====================================
 // 🤖 GENERAR ITINERARIO CON IA
 // =====================================
+
 app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
   const { tripId } = req.params;
-  
+  console.log('Generando itinerario IA para viaje ID:', tripId);  
   try {
     /**
      * 1️⃣ Llamar al webhook de n8n (agente IA)
      * El body lo reenvías tal cual (mensaje, preferencias, viaje, etc.)
      */
     const aiResponse = await axios.post(
-      'http://localhost:5678/webhook/chat',
+      'http://localhost:5678/webhook/itinerary',
       req.body
     );
 
@@ -410,6 +411,7 @@ app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
      * 2️⃣ Extraer el itinerario del payload
      */
     const aiItinerary = aiResponse.data?.output?.[0];
+    console.log('Itinerario IA recibido:', aiItinerary);
 
     if (!aiItinerary || !Array.isArray(aiItinerary.items)) {
       return res.status(400).json({
@@ -426,7 +428,7 @@ app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
       (trip_id, name, status, source, notes)
       VALUES (?, ?, ?, ?, ?)
     `;
-
+    
     db.query(
       insertItinerarySql,
       [
@@ -465,8 +467,10 @@ app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
         `;
 
         let insertedItems = 0;
-
+        
         for (const item of aiItinerary.items) {
+          const startDatetime = normalizeDatetime(item.start_datetime, "09:00");
+          const endDatetime   = normalizeDatetime(item.end_datetime, "11:00");
           db.query(
             insertItemSql,
             [
@@ -474,8 +478,8 @@ app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
               item.type,
               item.title,
               item.description || null,
-              null, // start_datetime (puedes mejorar esto luego)
-              null, // end_datetime
+              startDatetime, // start_datetime (puedes mejorar esto luego)
+              endDatetime, // end_datetime
               item.location || null,
               'pending'
             ],
@@ -513,47 +517,147 @@ app.post('/trips/:tripId/itineraries/ai', async (req, res) => {
 // 💬 CHAT CON MEMORIA (Travory)
 // =====================================
 app.post('/chat', async (req, res) => {
-  const { userId, message } = req.body;
+  const { userId, conversationId, message } = req.body;
 
-  if (!userId || !message) {
+  if (!userId || !conversationId || !message) {
     return res.status(400).json({
-      error: 'userId y message son obligatorios'
+      error: 'userId, conversationId y message son obligatorios'
     });
   }
 
   try {
-    // 1️⃣ Obtener historial reciente (máx 6 mensajes)
+    /* =====================================================
+     * 1️⃣ HISTORIAL (solo apoyo de tono, NO memoria)
+     * ===================================================== */
     const historySql = `
       SELECT role, content
       FROM chat_messages
-      WHERE user_id = ?
+      WHERE user_id = ? AND conversation_id = ?
       ORDER BY created_at ASC
-      LIMIT 10
+      LIMIT 6
     `;
 
-    const [historyRows] = await db.promise().query(historySql, [userId]);
+    const [historyRows] = await db
+      .promise()
+      .query(historySql, [userId, conversationId]);
 
     const history = historyRows.map(row => ({
       role: row.role,
       content: row.content
     }));
 
-    const hasHistory = history.length > 0;
+    /* =====================================================
+     * 2️⃣ ESTADO CONVERSACIONAL (memoria real)
+     * ===================================================== */
+    const [stateRows] = await db
+      .promise()
+      .query(
+        'SELECT * FROM conversation_state WHERE user_id = ? AND conversation_id = ?',
+        [userId, conversationId]
+      );
 
-    // 2️⃣ Llamar a n8n con el contrato acordado
+    let state = stateRows[0] || {
+      destination: null,
+      month: null,
+      budget: null,
+      travel_type: null,
+      companions: null,
+      active_mode: null
+    };
+
+    const msg = message.toLowerCase();
+
+    /* =====================================================
+     * 3️⃣ BLOQUEO DE INTENCIÓN (ACTIVE MODE)
+     * ===================================================== */
+
+    // SOLO se detecta si aún NO hay modo activo
+    if (!state.active_mode) {
+      if (/panader[ií]a|restaurante|caf[eé]|bar/i.test(msg)) {
+        state.active_mode = 'local_recommendation';
+      } else if (/historia|qué sabes|curioso|significado/i.test(msg)) {
+        state.active_mode = 'guide';
+      } else if (/viaje|itinerario|fecha|presupuesto|plan/i.test(msg)) {
+        state.active_mode = 'planner';
+      }
+    }
+
+    /* =====================================================
+     * 4️⃣ SLOT FILLING (SOLO si aplica al modo)
+     * ===================================================== */
+
+    if (state.active_mode === 'planner') {
+      if (!state.destination && /\bitalia\b/i.test(msg)) {
+        state.destination = 'Italia';
+      }
+
+      if (!state.month && /\bseptiembre\b/i.test(msg)) {
+        state.month = 'septiembre';
+      }
+
+      if (!state.budget && /económic|barato|bajo/i.test(msg)) {
+        state.budget = 'bajo';
+      }
+    }
+
+    /* =====================================================
+     * 5️⃣ GUARDAR ESTADO (FUENTE DE VERDAD)
+     * ===================================================== */
+    await db.promise().query(
+      `
+      INSERT INTO conversation_state
+      (user_id, conversation_id, destination, month, budget, travel_type, companions, active_mode)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE
+        destination = VALUES(destination),
+        month = VALUES(month),
+        budget = VALUES(budget),
+        travel_type = VALUES(travel_type),
+        companions = VALUES(companions),
+        active_mode = VALUES(active_mode)
+      `,
+      [
+        userId,
+        conversationId,
+        state.destination,
+        state.month,
+        state.budget,
+        state.travel_type,
+        state.companions,
+        state.active_mode
+      ]
+    );
+
+    /* =====================================================
+     * 6️⃣ TEXTO DE ESTADO (PARA LA IA)
+     * ===================================================== */
+    const stateText = `
+Modo activo: ${state.active_mode ?? 'no definido'}
+
+Destino: ${state.destination ?? 'desconocido'}
+Mes: ${state.month ?? 'desconocido'}
+Presupuesto: ${state.budget ?? 'desconocido'}
+Tipo de viaje: ${state.travel_type ?? 'desconocido'}
+Compañía: ${state.companions ?? 'desconocida'}
+`.trim();
+
+    /* =====================================================
+     * 7️⃣ LLAMADA A N8N (CON MODO BLOQUEADO)
+     * ===================================================== */
     const aiResponse = await axios.post(
       'http://localhost:5678/webhook/chatia',
       {
         message,
         history,
-        meta: { hasHistory }
+        stateText,
+        activeMode: state.active_mode,
+        meta: {
+          hasHistory: history.length > 0
+        }
       },
-      {
-        timeout: 60000 // ⬅️ evita cuelgues
-      }
+      { timeout: 60000 }
     );
 
-    // 3️⃣ Extraer respuesta (n8n devuelve array)
     const reply = aiResponse.data?.[0]?.content;
 
     if (!reply) {
@@ -562,20 +666,26 @@ app.post('/chat', async (req, res) => {
       });
     }
 
-    // 4️⃣ Guardar mensaje del usuario
+    /* =====================================================
+     * 8️⃣ GUARDAR MENSAJES
+     * ===================================================== */
     await db.promise().query(
-      'INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)',
-      [userId, 'user', message]
+      'INSERT INTO chat_messages (user_id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
+      [userId, conversationId, 'user', message]
     );
 
-    // 5️⃣ Guardar respuesta del asistente
     await db.promise().query(
-      'INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)',
-      [userId, 'assistant', reply]
+      'INSERT INTO chat_messages (user_id, conversation_id, role, content) VALUES (?, ?, ?, ?)',
+      [userId, conversationId, 'assistant', reply]
     );
 
-    // 6️⃣ Responder al frontend
-    res.json({ reply });
+    /* =====================================================
+     * 9️⃣ RESPUESTA FINAL
+     * ===================================================== */
+    res.json({
+      reply,
+      activeMode: state.active_mode
+    });
 
   } catch (error) {
     console.error('❌ Error en /chat:', error.message);
@@ -584,6 +694,18 @@ app.post('/chat', async (req, res) => {
     });
   }
 });
+function normalizeDatetime(dateStr, defaultTime = "09:00") {
+  if (!dateStr) return null;
+
+  // Si ya viene con hora (ISO o HH:mm)
+  if (dateStr.includes("T") || dateStr.match(/\d{2}:\d{2}/)) {
+    return new Date(dateStr);
+  }
+
+  // YYYY-MM-DD → YYYY-MM-DD HH:mm:ss
+  return new Date(`${dateStr}T${defaultTime}:00`);
+}
+
 
 
 

@@ -36,10 +36,10 @@ export default {
   generateItineraryAI(tripId, payload) {
     return api.post(`/trips/${tripId}/itineraries/ai`, payload);
   },
-  
-  sendChatMessage(userId, message) {
-    console.log('Sending chat message:', { userId, message });
-    return api.post('/chat', { userId, message });
+
+  sendChatMessage({ userId, conversationId, message }) {
+    console.log('Sending chat message:', { userId, conversationId, message });
+    return api.post('/chat', { userId, conversationId, message });
   }
 
 }

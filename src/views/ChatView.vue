@@ -2,18 +2,21 @@
 import { ref, nextTick, onMounted } from "vue";
 import api from "@/api/api";
 import { session } from "@/services/session";
+import { conversation } from "@/services/conversation";
 
 const user = ref(null);
+const conversationId = ref(null);
 
 onMounted(() => {
   user.value = session.get();
+  conversationId.value = conversation.getOrCreate();
 });
 
 const messages = ref([
   {
     id: "1",
     type: "bot",
-    text: "¡Hola! Soy tu asistente de viajes con IA. ¿En qué puedo ayudarte hoy?",
+    text: "¡Hola! Soy Travory, tu asistente de viajes. ¿En qué puedo ayudarte hoy?",
     timestamp: new Date(),
   },
 ]);
@@ -21,13 +24,21 @@ const messages = ref([
 const inputValue = ref("");
 const sending = ref(false);
 const messagesEndRef = ref(null);
+
 async function scrollToBottom() {
   await nextTick();
   messagesEndRef.value?.scrollIntoView({ behavior: "smooth" });
 }
-async function handleSend() {
-  if (!inputValue.value.trim() || sending.value || !user.value?.id) return;
 
+async function handleSend() {
+  if (
+    !inputValue.value.trim() ||
+    sending.value ||
+    !user.value?.id ||
+    !conversationId.value
+  ) {
+    return;
+  }
   const userMessage = {
     id: Date.now().toString(),
     type: "user",
@@ -53,8 +64,11 @@ async function handleSend() {
   await scrollToBottom();
 
   try {
-    const res = await api.sendChatMessage(user.value.id, userMessage.text);
-
+    const res = await api.sendChatMessage({
+      userId: user.value.id,
+      conversationId: conversationId.value,
+      message: userMessage.text,
+    });
     const index = messages.value.findIndex((m) => m.id === thinkingId);
 
     if (index !== -1) {

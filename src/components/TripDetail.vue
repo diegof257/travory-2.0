@@ -257,7 +257,7 @@ function buildIAPayload() {
     <div class="ai-box">
       <div class="spinner"></div>
       <h3>Generando tu itinerario</h3>
-      <p>La IA está planificando tu viaje…</p>
+      <p>Travory está planificando tu viaje…</p>
     </div>
   </div>
 </template>

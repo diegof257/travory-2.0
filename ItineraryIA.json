@@ -1,0 +1,157 @@
+{
+  "name": "Trvory",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "itinerary",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "17f8f49d-f200-4c43-86e8-1c48d9d8e885",
+      "name": "Webhook",
+      "webhookId": "8258adea-fa1e-4e9b-9915-19ebaa34bba7"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un asistente experto en planificación de viajes. \nPREFERENCIAS DEL USUARIO (escala 1 a 5): {{ JSON.stringify($json.body.preferencias, null, 2) }} \n\nINTERPRETACIÓN: - 5 = le encanta - 3 = neutral - 1 = no le gusta \n\nREGLAS: - Prioriza las preferencias con mayor nivel. - Evita actividades con nivel 1 o 2. - Ajusta el ritmo si la preferencia \"walking\" es baja. - No inventes lugares. - Usa solo lugares reales del destino indicado. \n\nCONTEXTO DEL VIAJE: Destino: {{ $json.body.viaje.destino }} Duración: {{ $json.body.viaje.duracionDias }} días Pregunta del usuario: {{ $json.body.mensaje }} Responde únicamente en español, de forma clara, realista y personalizada. \n\n⚠️ INSTRUCCIONES CRÍTICAS ⚠️ \n- Responde EXCLUSIVAMENTE usando la siguiente estructura json. \n{ \"itinerary\": \n  { \"trip_id\": null, \"name\": \"\", \"status\": \"draft\", \"source\": \"ai\", \"notes\": \"\", \"created_at\": null, \"items\": [ { \"type\": \"\", \"title\": \"\", \"description\": \"\", \"start_datetime\": null, \"end_datetime\": null, \"location\": \"\", \"status\": \"pending\", \"service_id\": null } ] } } \nReglas: \n- No inventes IDs. \n- Usa solo los tipos permitidos: POI | RESERVATION | ACTIVITY | TRANSPORT | FREE_TIME \n- Si no hay horario, usa null. \n- No elimines campos del JSON. \n- Devuelve únicamente el JSON.\n- Siempre agregar fecha de inicio y fecha de fin\nREGLAS DE PLANIFICACIÓN TEMPORAL:\n\n- Organiza el itinerario por DÍAS completos.\n- Cada día debe tener actividades ordenadas cronológicamente.\n- Usa horarios realistas:\n  - Mañana: 09:00 – 12:00 (POI, cultura, caminatas)\n  - Mediodía: 13:00 – 15:00 (gastronomía)\n  - Tarde: 16:00 – 19:00 (paseos, actividades)\n  - Noche: 20:00 – 22:00 (cena, ocio)\n\n- No solapes actividades.\n- Si el viaje dura varios días:\n  - Día 1 comienza más tarde (llegada).\n  - Último día termina más temprano (salida).\n\n- start_datetime y end_datetime SON OBLIGATORIOS.\n- Formato obligatorio: YYYY-MM-DD HH:mm:ss",
+        "hasOutputParser": true,
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1b5c2013-0605-4c2f-86b7-4b67d4c30939",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"reply\": \"{{ $json.text }}\"\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        208
+      ],
+      "id": "6e473e21-2066-4cdd-8a8e-30b01654b61a",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "model": "gemma3:1b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        144,
+        208
+      ],
+      "id": "e97ebe94-a15a-4d1d-9d84-2fc3cf3d0500",
+      "name": "Ollama Itinerario",
+      "credentials": {
+        "ollamaApi": {
+          "id": "Lb525NmfaDEpLRFy",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gemma3:1b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        352,
+        400
+      ],
+      "id": "8c8c279b-8ade-4368-aaca-b5f3b75ed596",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "Lb525NmfaDEpLRFy",
+          "name": "Ollama account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        []
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Itinerario": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "b7b53f66-cbc6-41af-8709-f07d1ea01a55",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b12ca39608cc2509d11cf801380e6baad5a3c7ab0b5e73b444f89e6823f3422d"
+  },
+  "id": "lit2L9SbEZe3JMi3FWzzP",
+  "tags": []
+}
