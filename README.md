@@ -1,4 +1,7 @@
 # travory-2.0
+Proyecto realizado como proyecto universitario con la intención de aprender como integra un agente IA dentro de una app Web.
+
+Los formularios no cuentan con validaciones de ningun tipo.
 
 This template should help get you started developing with Vue 3 in Vite.
 
